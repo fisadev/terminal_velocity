@@ -34,7 +34,36 @@ ATTACK_RADIUS = 2
 ASTEROIDS_FACTOR = 5
 
 
-Position = namedtuple("Position", "x y")
+class Position(namedtuple("Position", "x y")):
+    """
+    Simple class to work with positions.
+    """
+
+    @lru_cache(maxsize=1000)
+    def distance_to(self, other):
+        """
+        Straight line distance to another position.
+        """
+        return math.sqrt(
+            abs(self.x - other.x) ** 2
+            + abs(self.y - other.y) ** 2
+        )
+
+    def positions_in_range(self, radius):
+        """
+        Gets the positions that are in range, within a certain radius.
+        Yields them in shuffled order.
+        """
+        # get possible values for x and y in a rectangle around the center, filter out by distance to
+        # only use the ones contained by the circle
+        x_values = list(range(self.x - radius, self.x + radius + 1))
+        y_values = list(range(self.y - radius, self.y + radius + 1))
+        coords_combinations = list(product(x_values, y_values))
+
+        for x, y in coords_combinations:
+            position = Position(x, y)
+            if self.distance_to(position) <= radius:
+                yield position
 
 
 class Player:
@@ -81,34 +110,6 @@ class Player:
         return f"{self.name}:{self.bot_type}"
 
 
-@lru_cache(maxsize=1000)
-def distance(pos_a, pos_b):
-    """
-    Euclidean distance between two points.
-    """
-    return math.sqrt(
-        abs(pos_a.x - pos_b.x) ** 2
-        + abs(pos_a.y - pos_b.y) ** 2
-    )
-
-
-def positions_in_rannge(center, radius):
-    """
-    Gets the positions that are in range of a certain position, within a certain radius.
-    Yields them in shuffled order.
-    """
-    # get possible values for x and y in a rectangle around the center, filter out by distance to
-    # only use the ones contained by the circle
-    x_values = list(range(center.x - radius, center.x + radius + 1))
-    y_values = list(range(center.y - radius, center.y + radius + 1))
-    coords_combinations = list(product(x_values, y_values))
-
-    for x, y in coords_combinations:
-        position = Position(x, y)
-        if distance(center, position) <= radius:
-            yield position
-
-
 class TerminalVelocity:
     """
     A game of Terminal Velocity.
@@ -136,7 +137,7 @@ class TerminalVelocity:
         self.map_radius = map_radius
         self.turns = turns
         self.home_base = Position(0, 0)
-        self.home_base_positions_cache = set(positions_in_rannge(self.home_base, HOME_BASE_RADIUS))
+        self.home_base_positions_cache = set(self.home_base.positions_in_range(HOME_BASE_RADIUS))
         self.asteroids = set()
         self.required_asteroid_count = ASTEROIDS_FACTOR * len(self.players)
 
@@ -190,7 +191,7 @@ class TerminalVelocity:
                 random.randint(min_coord, max_coord),
             )
 
-            if distance(self.home_base, position) > HOME_BASE_RADIUS \
+            if self.home_base.distance_to(position) > HOME_BASE_RADIUS \
                     and position not in self.asteroids \
                     and position not in players_positions:
                 self.asteroids.add(position)
@@ -269,7 +270,7 @@ class TerminalVelocity:
                 continue
 
             # the other player is beyond range
-            if distance(player.position, other_player.position) > radius:
+            if player.position.distance_to(other_player.position) > radius:
                 continue
 
             yield other_player
@@ -286,12 +287,12 @@ class TerminalVelocity:
 
         # add asteroid contacts
         for asteroid in self.asteroids:
-            if distance(player.position, asteroid) <= RADAR_RADIUS:
+            if player.position.distance_to(asteroid) <= RADAR_RADIUS:
                 contacts[asteroid] = ASTEROID
 
         # add home base contacts
         for home_base_position in self.home_base_positions_cache:
-            if distance(player.position, home_base_position) <= RADAR_RADIUS:
+            if player.position.distance_to(home_base_position) <= RADAR_RADIUS:
                 contacts[home_base_position] = HOME_BASE
 
         return contacts
@@ -337,7 +338,7 @@ class TerminalVelocity:
 
         speed = max(player.power_distribution[ENGINES] - player.cargo, 0)
 
-        if distance(player.position, destination) > speed:
+        if player.position.distance_to(destination) > speed:
             return False, f"tried to fly faster than the available power, overheated! {destination}"
 
         if destination.x < -self.map_radius or destination.x > self.map_radius \
@@ -380,7 +381,7 @@ class TerminalVelocity:
         """
         Do the automatic attacks from the player's spaceship.
         """
-        if distance(player.position, self.home_base) <= HOME_BASE_RADIUS:
+        if player.position.distance_to(self.home_base) <= HOME_BASE_RADIUS:
             # can't attack if I'm in the home base
             return
 
@@ -390,7 +391,7 @@ class TerminalVelocity:
         # remove targets that are inside the base, can't be attacked either
         targets = [
             target_player for target_player in targets
-            if distance(target_player.position, self.home_base) > HOME_BASE_RADIUS
+            if target_player.position.distance_to(self.home_base) > HOME_BASE_RADIUS
         ]
 
         for target_player in targets:
@@ -412,7 +413,7 @@ class TerminalVelocity:
         """
         Do the automatic asteroid delivery at the home base.
         """
-        if player.cargo and distance(player.position, self.home_base) <= HOME_BASE_RADIUS:
+        if player.cargo and player.position.distance_to(self.home_base) <= HOME_BASE_RADIUS:
             delivered_asteroids = player.cargo
 
             player.score += delivered_asteroids
@@ -426,7 +427,7 @@ class TerminalVelocity:
         Drop a certain number of asteroids from the player's cargo. Place them in random positions
         around the player.
         """
-        for drop_position in positions_in_rannge(center, 2):
+        for drop_position in center.positions_in_range(2):
             if not count:
                 break
 

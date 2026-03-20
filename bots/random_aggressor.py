@@ -1,7 +1,5 @@
 import random
 
-from tv.game import positions_in_rannge
-
 
 class BotLogic:
     """
@@ -24,4 +22,4 @@ class BotLogic:
             return "power_to", desired_distribution
         else:
             # move to a random destination
-            return "fly_to", random.choice(list(positions_in_rannge(position, 1)))
+            return "fly_to", random.choice(list(position.positions_in_range(1)))

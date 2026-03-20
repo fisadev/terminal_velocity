@@ -157,6 +157,22 @@ You can even use multiple copies of your bot at once, like this:
 uv run play.py --players Alice:my_bot,Bob:my_bot,Charlie:my_bot
 ```
 
+### Useful things you can use in your bot
+
+You can import all of these things to use them in your bot:
+
+```python
+from tv.game import (
+    ENGINES, SHIELDS, LASERS,  # powered systems
+    FLY_TO, POWER_TO,  # action names
+    MAX_CARGO, MAX_HP, MAX_POWER,  # limits
+    HOME_BASE, ASTEROID, SPACESHIP,  # radar contact types
+    # simple class to work with positions, with x,y attributes and some of useful methods 
+    # like `distance_to()` and `positions_in_rannge()`
+    Position,
+)
+```
+
 # Game options
 
 The game allows you to configure a few things with optional command arguments. 
