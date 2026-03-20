@@ -1,5 +1,7 @@
 # Terminal Velocity
 
+<video src="https://i.imgur.com/s9WC3h4.mp4" width=500 />
+
 A small game for a PyCamp. Build your own bot, play against bots from other people :)
 
 # Game rules
