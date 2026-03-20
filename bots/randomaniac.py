@@ -1,6 +1,6 @@
 import random
 
-from tv.game import positions_around, MAX_POWER
+from tv.game import positions_in_rannge, MAX_POWER
 
 
 class BotLogic:
@@ -20,7 +20,7 @@ class BotLogic:
         if random.random() < 0.8:
             # move to a random destination
             speed = power_distribution["engines"]
-            possible_destinations = list(positions_around(position, speed))
+            possible_destinations = list(positions_in_rannge(position, speed))
             destination = random.choice(possible_destinations)
 
             return "fly_to", destination

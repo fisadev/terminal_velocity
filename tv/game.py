@@ -92,10 +92,10 @@ def distance(pos_a, pos_b):
     )
 
 
-def positions_around(center, radius):
+def positions_in_rannge(center, radius):
     """
-    Gets the positions around a given center up to (including) a certain radius.
-    Yields them in shuffled order
+    Gets the positions that are in range of a certain position, within a certain radius.
+    Yields them in shuffled order.
     """
     # get possible values for x and y in a rectangle around the center, filter out by distance to
     # only use the ones contained by the circle
@@ -136,7 +136,7 @@ class TerminalVelocity:
         self.map_radius = map_radius
         self.turns = turns
         self.home_base = Position(0, 0)
-        self.home_base_positions_cache = set(positions_around(self.home_base, HOME_BASE_RADIUS))
+        self.home_base_positions_cache = set(positions_in_rannge(self.home_base, HOME_BASE_RADIUS))
         self.asteroids = set()
         self.required_asteroid_count = ASTEROIDS_FACTOR * len(self.players)
 
@@ -426,7 +426,7 @@ class TerminalVelocity:
         Drop a certain number of asteroids from the player's cargo. Place them in random positions
         around the player.
         """
-        for drop_position in positions_around(center, 2):
+        for drop_position in positions_in_rannge(center, 2):
             if not count:
                 break
 
