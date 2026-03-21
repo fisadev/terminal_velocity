@@ -8,13 +8,15 @@ A small game for a PyCamp. Build your own bot, play against bots from other peop
 
 The rules are pretty simple:
 
-### Mining asteroids to get points
+### Earning space credits
 
 - Each player controls a spaceship, and spawns at the home base in the center of the map.
 - There are asteroids all over the map, players want to mine them for resources.
 - To mine an asteroid you fly to its position. Your spaceship will automatically pick it up. Then 
   you fly back to the home base, where it's automatically delivered.
-- When you deliver it at the base it's mined for resources and you get points!
+- When you deliver it at the base it's mined for resources and you get credits!
+- If you want to get risky, you can also hunt other spaceships! Destroying an opponent gets you 
+  10% of their current credits.
 - The home base is a sanctuary, spaceships can't fight while inside it.
 
 ### "ALL POWER TO THE SHIELDS!"
@@ -45,6 +47,7 @@ The rules are pretty simple:
   chances depend on how the spaceships have their lasers and shields configured.
 - If a spaceship is destroyed, a new one will be deployed at the home base. But any asteroids it
   was carrying stay where it died, and can be picked up by other players.
+- When a spaceship is destroyed, the attacker steals 10% of the victim's credits. Pirating is fun!
 
 ### Cargo bay
 
@@ -72,7 +75,7 @@ the docstrings to implement your logic :)
 
 ```python
 class BotLogic:
-    def initialize(self, ...):
+    def initialize(self, map_radius, players, turns, home_base_positions):
         """
         Here you can prepare your bot for the game.
         Use it to initialize variables, prepare strategies, etc.
@@ -80,7 +83,7 @@ class BotLogic:
         """
         ...
 
-    def turn(self, hp, cargo, position, power_distribution, radar_contacts):
+    def turn(self, turn_number, hp, ship_number, cargo, position, power_distribution, radar_contacts, leader_board):
         """
         Here you write the logic of your bot.
         On each turn the game will call this function of your bot, giving you all the info about
@@ -97,7 +100,18 @@ The **turn()** method is where the magic of your bot happens!
 
 ### Inputs:
 
+For the initialize() method:
+- map_radius: the radius of the map. The home base is at position (0, 0). The map extends to -map_size 
+  and +map_size in both axes.
+- players: the list of player names
+- turns: the number of turns the game will last
+- home_base_positions: the set of positions that the base covers
+
+For the turn() method:
+- turn_number: the number of the current turn, starting at 0
 - hp: how many hitpoints your spaceship has left
+- ship_number: every time your ship is destroyed and a new one is created, this number will increment. 
+  This lets you know if you're dying too much :)
 - cargo: how many asteroids you are currently carrying
 - position: your current position in space (x, y)
 - power_distribution: a dictionary letting you know your current power configuration, like this:
@@ -123,6 +137,7 @@ The **turn()** method is where the magic of your bot happens!
         (2, 2): "home_base",
     }
 ```
+- leader_board: a dictionary with the names of the players and how much credits they have so far.
 
 ### Outputs:
 
@@ -163,9 +178,9 @@ You can import all of these things to use them in your bot:
 
 ```python
 from tv.game import (
-    ENGINES, SHIELDS, LASERS,  # powered systems
+    ENGINES, SHIELDS, LASERS,  # names of the powered systems
     FLY_TO, POWER_TO,  # action names
-    MAX_CARGO, MAX_HP, MAX_POWER,  # limits
+    MAX_CARGO, MAX_HP, MAX_POWER,  # game limits
     HOME_BASE, ASTEROID, SPACESHIP,  # radar contact types
     # simple class to work with positions, with x,y attributes and some of useful methods 
     # like `distance_to(another_position)` and `positions_in_range(some_distance)`
@@ -173,8 +188,8 @@ from tv.game import (
 )
 ```
 
-All the positions the game gives you in the inputs (the spaceship position, the keys in the radar contacts dict) 
-are instances of `Position`.
+All the positions the game gives you in the inputs (the spaceship position, the keys in the radar 
+contacts dict, etc) are instances of `Position`.
 
 # Game options
 

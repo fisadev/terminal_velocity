@@ -79,9 +79,10 @@ class Player:
         else:
             self.bot_logic = Player.import_bot_logic(bot_type)
 
-        self.score = 0
+        self.credits = 0
         self.position = None
         self.hp = MAX_HP
+        self.ship_number = 1
         self.cargo = 0
         self.power_distribution = {
             ENGINES: 1,
@@ -213,7 +214,12 @@ class TerminalVelocity:
 
             logging.info("initializing player bots logic")
             for player in self.players.values():
-                player.bot_logic.initialize()
+                player.bot_logic.initialize(
+                    map_radius=self.map_radius,
+                    players=list(p.name for p in self.players.values()),
+                    turns=self.turns,
+                    home_base_positions=self.home_base_positions_cache.copy(),
+                )
 
             for turn_number in range(self.turns):
                 self.spawn_players()
@@ -228,7 +234,7 @@ class TerminalVelocity:
                         # player isn't alive, skip their turn
                         continue
 
-                    turn_ok, reason = self.do_player_action(player)
+                    turn_ok, reason = self.do_player_action(player, turn_number)
                     if turn_ok:
                         logging.info("%s action ran ok: %s", player, reason)
                     else:
@@ -240,10 +246,10 @@ class TerminalVelocity:
                 if self.ui:
                     self.ui.render(turn_number)
 
-            max_score = max(player.score for player in self.players.values())
+            max_credits = max(player.credits for player in self.players.values())
             winners = [
                 player for player in self.players.values()
-                if player.score == max_score
+                if player.credits == max_credits
             ]
             if winners:
                 logging.info("%s won!", " and ".join(winner.name for winner in winners))
@@ -297,17 +303,20 @@ class TerminalVelocity:
 
         return contacts
 
-    def do_player_action(self, player):
+    def do_player_action(self, player, turn_number):
         """
         A player takes its turn to play.
         """
         logging.info("%s calling turn() function", player)
         action = player.bot_logic.turn(
-            player.hp,
-            player.cargo,
-            player.position,
-            player.power_distribution.copy(),
-            self.get_radar_contacts(player),
+            turn_number=turn_number,
+            hp=player.hp,
+            ship_number=player.ship_number,
+            cargo=player.cargo,
+            position=player.position,
+            power_distribution=player.power_distribution.copy(),
+            radar_contacts=self.get_radar_contacts(player),
+            leader_board={p.name: p.credits for p in self.players.values()},
         )
 
         if action:
@@ -403,9 +412,17 @@ class TerminalVelocity:
                     logging.info("%s hit %s for %s damage!", player, target_player, damage)
                 else:
                     self.drop_asteroids(target_player.position, target_player.cargo)
+
+                    stolen_credits = int(target_player.credits / 10)
+
                     target_player.position = None
                     target_player.cargo = 0
-                    logging.info("%s was destroyed by %s!", target_player, player)
+                    target_player.credits -= stolen_credits
+                    target_player.ship_number += 1
+
+                    player.credits += stolen_credits
+
+                    logging.info("%s was destroyed by %s! %s$ stolen", target_player, player, stolen_credits)
             else:
                 logging.info("%s attacked %s but missed!", player, target_player)
 
@@ -416,7 +433,7 @@ class TerminalVelocity:
         if player.cargo and player.position.distance_to(self.home_base) <= HOME_BASE_RADIUS:
             delivered_asteroids = player.cargo
 
-            player.score += delivered_asteroids
+            player.credits += delivered_asteroids
             player.cargo = 0
 
             if delivered_asteroids:
