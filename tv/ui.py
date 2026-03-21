@@ -13,6 +13,7 @@ from tv.game import (
     LASERS,
     MAX_POWER,
     MAX_CARGO,
+    MAX_HP,
     Position,
     Player,
 )
@@ -126,13 +127,14 @@ class TerminalVelocityUI:
             else:
                 winner_message = ""
 
-            player_line = f"{player}:{player.ship_number} {player.kills}🕱 {player.delivered_asteroids}{{}}{self.term.clear_eol}"
+            player_line = f"{player} {player.kills}/{player.ship_number - 1}🕱 {player.delivered_asteroids}{{}}{self.term.clear_eol} {player.credits}$"
             engines_bar = (player.power_distribution[ENGINES] * '█').ljust(MAX_POWER, '▒')
             shields_bar = (player.power_distribution[SHIELDS] * '█').ljust(MAX_POWER, '▒')
             lasers_bar = (player.power_distribution[LASERS] * '█').ljust(MAX_POWER, '▒')
+            hp_bar = (player.hp * '█').ljust(MAX_HP, '▒')
 
             stats_line = (
-                f"E{engines_bar} S{shields_bar} L{lasers_bar} C{player.cargo * '{}':<4} {player.hp}hp {player.credits}${self.term.clear_eol}"
+                f"E{engines_bar} S{shields_bar} L{lasers_bar} C{player.cargo * '{}':<4} ♥{hp_bar}{self.term.clear_eol}"
             )
 
             player_row = (idx + 1) * 2
