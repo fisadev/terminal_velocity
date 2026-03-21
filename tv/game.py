@@ -61,10 +61,11 @@ class Position(namedtuple("Position", "x y")):
         x_values = list(range(self.x - radius, self.x + radius + 1))
         y_values = list(range(self.y - radius, self.y + radius + 1))
         coords_combinations = list(product(x_values, y_values))
+        random.shuffle(coords_combinations)
 
         for x, y in coords_combinations:
             position = Position(x, y)
-            if self.distance_to(position) <= radius:
+            if position != self and self.distance_to(position) <= radius:
                 yield position
 
 
@@ -139,8 +140,9 @@ class TerminalVelocity:
         # initialize the rest of the game parameters
         self.map_radius = map_radius
         self.turns = turns
-        self.home_base = Position(0, 0)
-        self.home_base_positions_cache = set(self.home_base.positions_in_range(HOME_BASE_RADIUS))
+        self.home_base_center = Position(0, 0)
+        self.home_base_positions_cache = set(self.home_base_center.positions_in_range(HOME_BASE_RADIUS))
+        self.home_base_positions_cache.add(self.home_base_center)
         self.asteroids = set()
         self.required_asteroid_count = ASTEROIDS_FACTOR * len(self.players)
 
@@ -194,7 +196,7 @@ class TerminalVelocity:
                 random.randint(min_coord, max_coord),
             )
 
-            if self.home_base.distance_to(position) > HOME_BASE_RADIUS \
+            if self.home_base_center.distance_to(position) > HOME_BASE_RADIUS \
                     and position not in self.asteroids \
                     and position not in players_positions:
                 self.asteroids.add(position)
@@ -392,7 +394,7 @@ class TerminalVelocity:
         """
         Do the automatic attacks from the player's spaceship.
         """
-        if player.position.distance_to(self.home_base) <= HOME_BASE_RADIUS:
+        if player.position.distance_to(self.home_base_center) <= HOME_BASE_RADIUS:
             # can't attack if I'm in the home base
             return
 
@@ -402,7 +404,7 @@ class TerminalVelocity:
         # remove targets that are inside the base, can't be attacked either
         targets = [
             target_player for target_player in targets
-            if target_player.position.distance_to(self.home_base) > HOME_BASE_RADIUS
+            if target_player.position.distance_to(self.home_base_center) > HOME_BASE_RADIUS
         ]
 
         for target_player in targets:
@@ -432,7 +434,7 @@ class TerminalVelocity:
         """
         Do the automatic asteroid delivery at the home base.
         """
-        if player.cargo and player.position.distance_to(self.home_base) <= HOME_BASE_RADIUS:
+        if player.cargo and player.position.distance_to(self.home_base_center) <= HOME_BASE_RADIUS:
             delivered_asteroids = player.cargo
 
             player.credits += delivered_asteroids * MINING_REWARD
