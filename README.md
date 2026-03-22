@@ -31,8 +31,8 @@ The rules are pretty simple:
       If you use 3 generators for the engines, you can jump up to 3 tiles away in a single turn. If 
       you have no generators assigned to the engines, then you can't move!
     - **Shields reduce the chances you get hit** by enemy fire. Each generator used on the shields 
-      reduces the chances of getting hit by 20%. So if you use 3 generators for the shields, you 
-      have 60% less chances to get hit. If you have no generators assigned to the shields, then you 
+      reduces the chances of getting hit by 30%. So if you use 3 generators for the shields, you 
+      have 90% less chances to get hit. If you have no generators assigned to the shields, then you 
       will get hit every time!
     - **Lasers increase the damage** you do when hitting the opponent. Each generator used on the 
       lasers increases the damage y 1 hitpoint. So if you use 3 generators for the lasers, you do 3 
@@ -75,7 +75,7 @@ the docstrings to implement your logic :)
 
 ```python
 class BotLogic:
-    def initialize(self, map_radius, players, turns, home_base_positions):
+    def initialize(self, player_name, map_radius, players, turns, home_base_positions):
         """
         Here you can prepare your bot for the game.
         Use it to initialize variables, prepare strategies, etc.
@@ -101,19 +101,20 @@ The **turn()** method is where the magic of your bot happens!
 ### Inputs:
 
 For the initialize() method:
+- player_name: the name of your player (so you can for instance identify your score in the leader board).
 - map_radius: the radius of the map. The home base is at position (0, 0). The map extends to -map_size 
   and +map_size in both axes.
-- players: the list of player names
-- turns: the number of turns the game will last
-- home_base_positions: the set of positions that the base covers
+- players: the list of player names.
+- turns: the number of turns the game will last.
+- home_base_positions: the set of positions that the base covers.
 
 For the turn() method:
-- turn_number: the number of the current turn, starting at 0
-- hp: how many hitpoints your spaceship has left
+- turn_number: the number of the current turn, starting at 0.
+- hp: how many hitpoints your spaceship has left.
 - ship_number: every time your ship is destroyed and a new one is created, this number will increment. 
   This lets you know if you're dying too much :)
-- cargo: how many asteroids you are currently carrying
-- position: your current position in space (x, y)
+- cargo: how many asteroids you are currently carrying.
+- position: your current position in space (x, y).
 - power_distribution: a dictionary letting you know your current power configuration, like this:
 
 ```python
@@ -204,3 +205,17 @@ Check them out with:
 ```bash
 uv run play.py --help
 ```
+
+# Isolation in docker containers
+
+To run untrustworthy bots without risking your computer, you can run the game in "isolated" mode.
+In this mode each bot runs in its own docker container, and the game communicates with them through
+zmq messages.
+
+To use this feature you first need to build the docker image for the bots with:
+
+```bash
+docker build -t terminal-velocity-bot-server .
+```
+
+Then you can run the game in isolated mode with the `--isolated` flag.

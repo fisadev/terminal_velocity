@@ -7,7 +7,8 @@ class BotLogic:
     """
     A bot that just moves randomly trying to find asteroids, and runs home when it finds one.
     """
-    def initialize(self, map_radius, players, turns, home_base_positions):
+
+    def initialize(self, player_name, map_radius, players, turns, home_base_positions):
         """
         This bot doesn't need to initialize anything except using a custom icon.
         """
