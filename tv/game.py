@@ -296,10 +296,6 @@ class TerminalVelocity:
         """
         contacts = {}
 
-        # add spaceship contacts
-        for other_player in self.get_alive_neighbors(player, RADAR_RADIUS):
-            contacts[other_player.position] = SPACESHIP
-
         # add asteroid contacts
         for asteroid in self.asteroids:
             if player.position.distance_to(asteroid) <= RADAR_RADIUS:
@@ -309,6 +305,10 @@ class TerminalVelocity:
         for home_base_position in self.home_base_positions_cache:
             if player.position.distance_to(home_base_position) <= RADAR_RADIUS:
                 contacts[home_base_position] = HOME_BASE
+
+        # add spaceship contacts
+        for other_player in self.get_alive_neighbors(player, RADAR_RADIUS):
+            contacts[other_player.position] = SPACESHIP
 
         return contacts
 
