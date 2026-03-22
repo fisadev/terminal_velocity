@@ -5,7 +5,7 @@ import time
 import zmq
 
 
-TURN_TIMEOUT = 1000  # ms
+TURN_TIMEOUT = 200  # ms
 INITIALIZE_TIMEOUT = 3000  # ms
 
 
@@ -34,6 +34,7 @@ class RemoteBotLogicClient:
         self.bot_type = bot_type
         self.port = None
         self.bot_server_process = None
+        self.socket = None
 
     def initialize(self, player_name, map_radius, players, turns, home_base_positions):
         """
@@ -51,7 +52,7 @@ class RemoteBotLogicClient:
         """
         Ask the bot in the container for an action and return it.
         """
-        return self.remote_call("turn", {
+        turn_return_value = self.remote_call("turn", {
             "turn_number": turn_number,
             "hp": hp,
             "ship_number": ship_number,
@@ -62,6 +63,10 @@ class RemoteBotLogicClient:
             "leader_board": leader_board,
         }, TURN_TIMEOUT)
 
+        self.icon = self.remote_call(".icon", {}, TURN_TIMEOUT)
+
+        return turn_return_value
+
     def start_bot_server(self):
         """
         Start the docker container running the bot logic.
@@ -69,12 +74,19 @@ class RemoteBotLogicClient:
         self.port = RemoteBotLogicClient.LAST_USED_PORT + 1
         RemoteBotLogicClient.LAST_USED_PORT = self.port
 
-        # docker run bot-server --bot-type <type> --port <port>
+        # launch the container with the bot
         self.bot_server_process = subprocess.Popen(
             f"docker run -p {self.port}:5000 terminal-velocity-bot-server --bot-type {self.bot_type} --port 5000",
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL,
             shell=True,
         )
+
+        time.sleep(0.5)  # give the container some time to start
+
+        # connect to the remote bot
+        context = zmq.Context()
+        self.socket = context.socket(zmq.REQ)
+        self.socket.connect(f"tcp://localhost:{self.port}")
 
     def stop_bot_server(self):
         """
@@ -86,14 +98,10 @@ class RemoteBotLogicClient:
         """
         Call a method on the remote bot.
         """
-        context = zmq.Context()
-        socket = context.socket(zmq.REQ)
-        socket.setsockopt(zmq.RCVTIMEO, timeout)
-        socket.connect(f"tcp://localhost:{self.port}")
-
-        socket.send_string(json.dumps({"method_name": method_name, "kw_args": kw_args}))
+        self.socket.setsockopt(zmq.RCVTIMEO, timeout)
+        self.socket.send_string(json.dumps({"method_name": method_name, "kw_args": kw_args}))
         try:
-            result = json.loads(socket.recv())
+            result = json.loads(self.socket.recv())
         except zmq.Again as err:
             raise RemoteBotTimmeout() from err
 
@@ -130,24 +138,29 @@ def bot_server(bot_type, port):
             kw_args = message["kw_args"]
 
             # parse the arguments, converting the special cases
-            if method_name == "initialize":
-                # convert home base positions to Position objects
-                kw_args["home_base_positions"] = [
-                    Position(x, y) for x, y in kw_args["home_base_positions"]
-                ]
-            elif method_name == "turn":
-                # convert position to Position object
-                kw_args["position"] = Position(*kw_args["position"])
-                # convert radar contact positions to Position objects
-                kw_args["radar_contacts"] = {
-                    Position(*map(int, pos.split(","))): thing
-                    for pos, thing in kw_args["radar_contacts"].items()
-                }
+            if method_name.startswith("."):
+                # this is a call to get an attribute, not a method, so we just return the value of the attribute
+                print("getting attribute", method_name)
+                bot_result = getattr(bot_logic, method_name[1:], None)
+            else:
+                if method_name == "initialize":
+                    # convert home base positions to Position objects
+                    kw_args["home_base_positions"] = [
+                        Position(x, y) for x, y in kw_args["home_base_positions"]
+                    ]
+                elif method_name == "turn":
+                    # convert position to Position object
+                    kw_args["position"] = Position(*kw_args["position"])
+                    # convert radar contact positions to Position objects
+                    kw_args["radar_contacts"] = {
+                        Position(*map(int, pos.split(","))): thing
+                        for pos, thing in kw_args["radar_contacts"].items()
+                    }
 
-            print("calling method", method_name)
-            bot_result = getattr(bot_logic, method_name)(**kw_args)
+                print("calling method", method_name)
+                bot_result = getattr(bot_logic, method_name)(**kw_args)
 
-            print("method", method_name, "returned", bot_result)
+            print(method_name, "returned", bot_result)
             result = {"worked": True, "return_value": bot_result}
         except Exception as err:
             print("method", method_name, "raised an error:", err)
