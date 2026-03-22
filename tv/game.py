@@ -6,7 +6,7 @@ from collections import namedtuple
 from functools import lru_cache
 from itertools import product
 
-from tv.isolation import IsolatedBotLogic
+from tv.isolation import RemoteBotLogicClient, RemoteBotError, RemoteBotTimmeout
 
 # objects in radar
 SPACESHIP = "spaceship"
@@ -73,12 +73,12 @@ class Player:
     """
     A player of the game, with an associated bot logic and game status.
     """
-    def __init__(self, name, bot_type, isolated, isolated_turn_timeout):
+    def __init__(self, name, bot_type, isolated):
         self.name = name
         self.bot_type = bot_type
 
         if isolated:
-            self.bot_logic = IsolatedBotLogic(name, bot_type, isolated_turn_timeout)
+            self.bot_logic = RemoteBotLogicClient(bot_type)
         else:
             self.bot_logic = Player.import_bot_logic(bot_type)
 
@@ -129,13 +129,12 @@ class TerminalVelocity:
     - ui: an instance of an UI to use
     - log_path: path to a file to use as log for this match
     - isolated: bool, if true, players bots will run isolated in docker containers
-    - isolated_turn_timeout: when running in isolated mode, the timeout to wait for a response from bots
     """
     def __init__(self, map_radius, turns, players_info,
-                 ui=None, log_path=None, isolated=False, isolated_turn_timeout=0.1):
+                 ui=None, log_path=None, isolated=False):
         # initialize players
         self.players = {
-            name: Player(name, bot_type, isolated=isolated, isolated_turn_timeout=isolated_turn_timeout)
+            name: Player(name, bot_type, isolated)
             for name, bot_type in players_info.items()
         }
 
@@ -153,7 +152,6 @@ class TerminalVelocity:
         # execution parameters
         self.ui = ui
         self.isolated = isolated
-        self.isolated_turn_timeout = isolated_turn_timeout
 
         if self.ui:
             self.ui.initialize(self)
@@ -220,6 +218,11 @@ class TerminalVelocity:
             logging.info("starting game loop")
             winners = None
 
+            if self.isolated:
+                logging.info("starting isolated bots")
+                for player in self.players.values():
+                    player.bot_logic.start_bot_server()
+
             logging.info("initializing player bots logic")
             for player in self.players.values():
                 player.bot_logic.initialize(
@@ -267,7 +270,9 @@ class TerminalVelocity:
                 self.ui.render(turn_number, winners)
         finally:
             if self.isolated:
-                self.isolation_cleanup()
+                logging.info("stopping isolated bots")
+                for player in self.players.values():
+                    player.bot_logic.stop_bot_server()
 
         return winners
 
@@ -317,16 +322,21 @@ class TerminalVelocity:
         A player takes its turn to play.
         """
         logging.info("%s calling turn() function", player)
-        action = player.bot_logic.turn(
-            turn_number=turn_number,
-            hp=player.hp,
-            ship_number=player.ship_number,
-            cargo=player.cargo,
-            position=player.position,
-            power_distribution=player.power_distribution.copy(),
-            radar_contacts=self.get_radar_contacts(player),
-            leader_board={p.name: p.credits for p in self.players.values()},
-        )
+        try:
+            action = player.bot_logic.turn(
+                turn_number=turn_number,
+                hp=player.hp,
+                ship_number=player.ship_number,
+                cargo=player.cargo,
+                position=player.position,
+                power_distribution=player.power_distribution.copy(),
+                radar_contacts=self.get_radar_contacts(player),
+                leader_board={p.name: p.credits for p in self.players.values()},
+            )
+        except RemoteBotError as err:
+            return False, "remote bot error: " + str(err)
+        except RemoteBotTimmeout:
+            return False, "remote bot didn't answer in time"
 
         if action:
             logging.info("%s requested action: %s", player, action)
@@ -348,7 +358,7 @@ class TerminalVelocity:
         """
         Fly to the specified position.
         """
-        if not isinstance(destination, tuple) or not len(destination) == 2:
+        if not isinstance(destination, (tuple, list)) or not len(destination) == 2:
             return False, f"fly_to destinaton is not a valid position: {destination}"
 
         if not isinstance(destination, Position):
@@ -463,10 +473,3 @@ class TerminalVelocity:
                     and drop_position not in self.home_base_positions_cache:
                 self.asteroids.add(drop_position)
                 count -= 1
-
-    def isolation_cleanup(self):
-        """
-        Stop the bot logic subprocesses for all players.
-        """
-        for player in self.players.values():
-            player.stop_bot()
