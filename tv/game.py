@@ -422,6 +422,10 @@ class TerminalVelocity:
             if target_player.position.distance_to(self.home_base_center) > HOME_BASE_RADIUS
         ]
 
+        if not damage:
+            logging.info("%s has no laser power, can't attack the targets in range", player)
+            return
+
         for target_player in targets:
             hit_chance = 1 - 0.3 * target_player.power_distribution[SHIELDS]
             if random.random() < hit_chance:
