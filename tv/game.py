@@ -341,7 +341,7 @@ class TerminalVelocity:
         if action:
             logging.info("%s requested action: %s", player, action)
         else:
-            return False, action
+            return False, "no action provided"
 
         if not isinstance(action, (list, tuple)) or not len(action) == 2:
             return False, f"{action} does not follow the action format, (action_type, position)"
