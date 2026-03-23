@@ -134,18 +134,24 @@ def main():
 
     match_cmd_template = "uv run play.py --players {players_arg} --isolated --ui-turn-delay 0.3 {extra_args}"
 
-    print("Official matches:", "#" * 60)
+    print()
+    print("# Official matches")
+    print()
 
     matches = build_matches(list(players.keys()), min_opponent_coverage=0.8)
     for match_n, match_players in enumerate(matches):
         print("Match", match_n + 1, "of", len(matches))
         match_players = {player: players[player] for player in match_players}
         print(match_cmd_template.format(players_arg=build_players_arg(match_players), extra_args=""))
+        print()
 
-    print("Special events:", "#" * 60)
+    print()
+    print("# Special events")
+    print()
 
     print("All players together!")
     print(match_cmd_template.format(players_arg=build_players_arg(players), extra_args="--turns 300 --map-radius 25"))
+    print()
 
 
 if __name__ == "__main__":
