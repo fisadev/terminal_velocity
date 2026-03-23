@@ -341,7 +341,7 @@ class TerminalVelocity:
         if action:
             logging.info("%s requested action: %s", player, action)
         else:
-            return False, action
+            return False, "no action provided"
 
         if not isinstance(action, (list, tuple)) or not len(action) == 2:
             return False, f"{action} does not follow the action format, (action_type, position)"
@@ -402,6 +402,12 @@ class TerminalVelocity:
         if sum(power_distribution.values()) > MAX_POWER:
             return False, f"power_to unable to use more power than available in the ship: {power_distribution}"
 
+        if any(power < 0 for power in power_distribution.values()):
+            return False, f"power_to can't use negative power: {power_distribution}"
+
+        if any(math.isnan(power) for power in power_distribution.values()):
+            return False, f"power_to can't use NaN power values: {power_distribution}"
+
         player.power_distribution = power_distribution
         return True, f"power_to applied new power distribution: {power_distribution}"
 
@@ -421,6 +427,10 @@ class TerminalVelocity:
             target_player for target_player in targets
             if target_player.position.distance_to(self.home_base_center) > HOME_BASE_RADIUS
         ]
+
+        if not damage:
+            logging.info("%s has no laser power, can't attack the targets in range", player)
+            return
 
         for target_player in targets:
             hit_chance = 1 - 0.3 * target_player.power_distribution[SHIELDS]
