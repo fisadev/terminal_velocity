@@ -50,6 +50,7 @@ class TerminalVelocityUI:
 
         free_colors = cycle([
             self.term.blue, self.term.red, self.term.green, self.term.yellow, self.term.cyan,
+            self.term.bright_white,
         ])
         for player in self.game.players.values():
             self.player_colors[player.name] = next(free_colors)
@@ -100,7 +101,8 @@ class TerminalVelocityUI:
             row = ""
             for x in range(-self.game.map_radius, self.game.map_radius + 1):
                 icon = "  "
-                color = self.term.black
+                color = self.term.light_black
+                background = self.term.on_light_black
 
                 thing = world.get(Position(x, y))
 
@@ -109,6 +111,8 @@ class TerminalVelocityUI:
                     color = self.player_colors[thing.name]
                     if thing.name in winner_names and blink_winners:
                         color = self.term.black
+                    if thing.position in self.game.home_base_positions_cache:
+                        background = self.term.on_white
                 elif thing == ASTEROID:
                     icon = "{}"
                     color = self.term.white
@@ -116,7 +120,7 @@ class TerminalVelocityUI:
                     icon = "██"
                     color = self.term.white
 
-                row += f"{color}{icon}{self.term.normal}"
+                row += f"{color}{background}{icon}{self.term.normal}"
             print(row)
 
     def render_players_status(self, turn_number, winner_names, blink_winners=False, running_in_fullscreen=True):
