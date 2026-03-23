@@ -47,8 +47,8 @@ class Position(namedtuple("Position", "x y")):
         Straight line distance to another position.
         """
         return math.sqrt(
-            abs(self.x - other.x) ** 2
-            + abs(self.y - other.y) ** 2
+            (self.x - other.x) ** 2
+            + (self.y - other.y) ** 2
         )
 
     def positions_in_range(self, radius):
