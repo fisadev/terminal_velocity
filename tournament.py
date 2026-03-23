@@ -64,9 +64,6 @@ def build_matches(players, match_size=6, min_opponent_coverage=0.5, max_matches=
     return matches
 
 
-
-
-
 def test_all_matches_same_player_count():
     matches = build_matches([f"Player {i}" for i in range(15)])
 
