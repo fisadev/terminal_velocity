@@ -1,7 +1,10 @@
 import json
 import logging
+import shutil
 import subprocess
+import tempfile
 import time
+from pathlib import Path
 from uuid import uuid4
 
 import zmq
@@ -76,9 +79,20 @@ class RemoteBotLogicClient:
         self.port = RemoteBotLogicClient.LAST_USED_PORT + 1
         RemoteBotLogicClient.LAST_USED_PORT = self.port
 
+        # create a temp dir with the bots code, to mount inside the container so we don't
+        # have to rebuild the image each time we change the bots
+        temp_bots_dir = Path(tempfile.mkdtemp()) / "bots"
+        real_bots_dir = Path(__file__).parent.parent / "bots"
+        shutil.copytree(real_bots_dir, temp_bots_dir)
+
         # launch the container with the bot
         subprocess.Popen(
-            f"docker run --rm --name {CONTAINER_NAME_PREFFIX}{self.bot_type}-{uuid4()} -p {self.port}:5000 terminal-velocity-bot-server --bot-type {self.bot_type} --port 5000",
+            (
+                f"docker run --rm --name {CONTAINER_NAME_PREFFIX}{self.bot_type}-{uuid4()} "
+                f"-p {self.port}:5000 "
+                f"-v {temp_bots_dir}:/app/bots "
+                f"terminal-velocity-bot-server --bot-type {self.bot_type} --port 5000"
+            ),
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL,
             shell=True,
         )
