@@ -117,14 +117,14 @@ def main():
         "doble_efe_std",  # facu+felu
         "emperors_fury",  # feli
         "strike_cruiser",  # feli
-        "marce",  # mega
+        "mega",  # mega
         "planet_express_fry",  # nadia
         "planet_express_leela",  # nadia
         "sofi_miner",  # sofi
         "sofibot",  # sofi
         "vieja_mula",  # charly
         "mula_luma",  # charly
-        "gandhibot",  # sebis
+        #"gandhibot",  # sebis
         "marian",  # marian
         "juani",  # juani
         "santa_claude",  # alexis
