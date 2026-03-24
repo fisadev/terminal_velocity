@@ -113,18 +113,23 @@ def build_players_arg(players):
 
 def main():
     bot_types = [
-        "doble_efe_miner",
-        "doble_efe_std",
-        "emperors_fury",
-        "marce",
-        "mula_luma",
-        "planet_express_fry",
-        "planet_express_leela",
-        "sofi_miner",
-        "sofibot",
-        "strike_cruiser",
-        "vieja_mula",
-        "gandhibot",
+        "doble_efe_miner",  # facu+felu
+        "doble_efe_std",  # facu+felu
+        "emperors_fury",  # feli
+        "strike_cruiser",  # feli
+        "marce",  # mega
+        "planet_express_fry",  # nadia
+        "planet_express_leela",  # nadia
+        "sofi_miner",  # sofi
+        "sofibot",  # sofi
+        "vieja_mula",  # charly
+        "mula_luma",  # charly
+        "gandhibot",  # sebis
+        "marian",  # marian
+        "juani",  # juani
+        "santa_claude",  # alexis
+        "pacific_queen",  # zoe
+        "conserva",  # pancho
     ]
 
     players = {
