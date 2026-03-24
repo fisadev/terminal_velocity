@@ -1,6 +1,27 @@
 import random
+from itertools import product
 
 from tv.game import Position, ASTEROID, POWER_TO, FLY_TO, ENGINES, SHIELDS, LASERS, SPACESHIP
+
+
+def positions_in_range_exactly(self, radius):
+    """
+    Gets the positions that are in range, within a certain radius.
+    Yields them in shuffled order.
+    """
+    # get possible values for x and y in a rectangle around the center, filter out by distance to
+    # only use the ones contained by the circle
+    x_values = list(range(self.x - radius, self.x + radius + 1))
+    y_values = list(range(self.y - radius, self.y + radius + 1))
+    coords_combinations = list(product(x_values, y_values))
+    random.shuffle(coords_combinations)
+
+    for x, y in coords_combinations:
+        position = Position(x, y)
+        if position != self and self.distance_to(position) == radius:
+            yield position
+
+
 
 class BotLogic:
     """
@@ -93,9 +114,9 @@ class BotLogic:
 
             else:
               #  position_range = list(position.positions_in_range(speed))
-                go_to = random.choice(list(set(position.positions_in_range_exactly(speed)) - self.home_base - set(self.last_reacheable_positions)- set(self.corners)))
+                go_to = random.choice(list(set(positions_in_range_exactly(position, speed)) - self.home_base - set(self.last_reacheable_positions)- set(self.corners)))
                 if not go_to:
-                    go_to = random.choice(list(set(position.positions_in_range_exactly(speed)) - self.home_base - self.corners))
+                    go_to = random.choice(list(set(positions_in_range_exactly(position, speed)) - self.home_base - self.corners))
 
                 self.last_reacheable_positions = reacheable_positions
                 return FLY_TO, go_to
