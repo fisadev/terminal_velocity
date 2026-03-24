@@ -124,6 +124,7 @@ def main():
         "sofibot",
         "strike_cruiser",
         "vieja_mula",
+        "gandhibot",
     ]
 
     players = {
